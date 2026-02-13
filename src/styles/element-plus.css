@@ -1,0 +1,66 @@
+/* src/styles/element-plus.css */
+
+/* ✅ Card 更像系统卡片 */
+.el-card {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+.el-card__header {
+  padding: 14px 16px;
+}
+.el-card__body {
+  padding: 16px;
+}
+
+/* ✅ 表格表头统一更干净 */
+.el-table {
+  border-radius: 12px;
+  overflow: hidden;
+}
+.el-table th.el-table__cell {
+  background: #f8fafc !important;
+  color: #0f172a;
+  font-weight: 700;
+}
+.el-table td.el-table__cell {
+  padding: 12px 0;
+}
+
+/* ✅ Dialog 统一 */
+.el-dialog {
+  border-radius: 14px;
+}
+.el-dialog__header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.el-dialog__body {
+  padding: 16px;
+}
+.el-dialog__footer {
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* ✅ Drawer 统一 */
+.el-drawer__header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0;
+}
+.el-drawer__body {
+  padding: 16px;
+}
+
+/* ✅ 按钮圆角统一 */
+.el-button {
+  border-radius: 10px;
+}
+
+/* ✅ 输入框圆角统一 */
+.el-input__wrapper,
+.el-select__wrapper,
+.el-textarea__inner {
+  border-radius: 10px !important;
+}

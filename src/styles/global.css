@@ -1,0 +1,78 @@
+/* src/styles/global.css */
+
+/* ========== 基础重置 ========== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  color: #111827;
+  background: #f5f7fb; /* ✅ 全局统一背景 */
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ========== 统一设计变量 ========== */
+:root {
+  --app-bg: #f5f7fb;
+  --card-bg: #ffffff;
+  --border: #eef2f7;
+  --muted: #64748b;
+
+  --radius: 14px;
+  --shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+
+  --space-1: 8px;
+  --space-2: 12px;
+  --space-3: 16px;
+  --space-4: 20px;
+  --space-5: 24px;
+}
+
+/* ========== 通用容器 ========== */
+.app-page {
+  padding: var(--space-4);
+}
+.app-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* ========== 通用区块间距 ========== */
+.section-gap {
+  margin-bottom: var(--space-3);
+}
+
+/* ========== 表格/分页统一 ========== */
+.table-wrap {
+  margin-top: var(--space-2);
+}
+.pager-wrap {
+  margin-top: var(--space-3);
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ========== 小工具类 ========== */
+.text-muted {
+  color: var(--muted);
+}
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.flex-gap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
