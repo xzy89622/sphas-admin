@@ -11,8 +11,10 @@ import FeedbackManage from "../views/FeedbackManage.vue";
 import BmiStandardManage from "../views/BmiStandardManage.vue";
 import QuestionBankManage from "../views/QuestionBankManage.vue";
 import AdminUserManage from "../views/AdminUserManage.vue";
+import HealthArticleManage from "../views/HealthArticleManage.vue";
 
 import { getToken } from "../utils/token";
+
 
 const router = createRouter({
   history: createWebHistory(),
@@ -35,6 +37,8 @@ const router = createRouter({
         { path: "bmi-standards", component: BmiStandardManage, meta: { title: "BMI 标准", requiresAuth: true } },
         { path: "question-bank", component: QuestionBankManage, meta: { title: "题库管理", requiresAuth: true } },
         { path: "admin-users", component: AdminUserManage, meta: { title: "创建管理员", requiresAuth: true } },
+        { path: "health-articles", component: HealthArticleManage, meta: { title: "健康科普", requiresAuth: true, order: 3 } },
+      
       ],
     },
 

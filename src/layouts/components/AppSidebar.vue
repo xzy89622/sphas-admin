@@ -82,6 +82,7 @@ const active = computed(() => route.path);
 const iconMap = {
   "/dashboard": DataBoard,
   "/notice": Bell,
+  "/health-articles": Document,
   "/feedback": ChatLineRound,
   "/bmi-standards": Histogram,
   "/question-bank": Collection,
