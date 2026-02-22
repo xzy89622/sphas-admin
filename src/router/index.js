@@ -13,36 +13,43 @@ import QuestionBankManage from "../views/QuestionBankManage.vue";
 import AdminUserManage from "../views/AdminUserManage.vue";
 import HealthArticleManage from "../views/HealthArticleManage.vue";
 
-import { getToken } from "../utils/token";
+// ✅ 新增页面
+import SocialAuditManage from "../views/SocialAuditManage.vue";
+import OpsBackup from "../views/OpsBackup.vue";
 
+import { getToken } from "../utils/token";
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    // 默认进后台首页
     { path: "/", redirect: "/dashboard" },
 
-    // 登录页
     { path: "/login", component: Login },
 
-    // 后台布局（需要登录）
     {
       path: "/",
       component: AdminLayout,
       meta: { requiresAuth: true },
       children: [
-        { path: "dashboard", component: Dashboard, meta: { title: "数据看板", requiresAuth: true } },
-        { path: "notice", component: NoticeManage, meta: { title: "公告管理", requiresAuth: true } },
-        { path: "feedback", component: FeedbackManage, meta: { title: "反馈管理", requiresAuth: true } },
-        { path: "bmi-standards", component: BmiStandardManage, meta: { title: "BMI 标准", requiresAuth: true } },
-        { path: "question-bank", component: QuestionBankManage, meta: { title: "题库管理", requiresAuth: true } },
-        { path: "admin-users", component: AdminUserManage, meta: { title: "创建管理员", requiresAuth: true } },
+        { path: "dashboard", component: Dashboard, meta: { title: "数据看板", requiresAuth: true, order: 1 } },
+
+        { path: "notice", component: NoticeManage, meta: { title: "公告管理", requiresAuth: true, order: 2 } },
         { path: "health-articles", component: HealthArticleManage, meta: { title: "健康科普", requiresAuth: true, order: 3 } },
-      
+        { path: "feedback", component: FeedbackManage, meta: { title: "反馈管理", requiresAuth: true, order: 4 } },
+
+        { path: "bmi-standards", component: BmiStandardManage, meta: { title: "BMI 标准", requiresAuth: true, order: 5 } },
+        { path: "question-bank", component: QuestionBankManage, meta: { title: "题库管理", requiresAuth: true, order: 6 } },
+
+        // ✅ 社区审核（任务2：审核流）
+        { path: "social-audit", component: SocialAuditManage, meta: { title: "社区内容审核", requiresAuth: true, order: 7 } },
+
+        // ✅ 运维备份（任务4：系统维护）
+        { path: "ops-backup", component: OpsBackup, meta: { title: "系统备份运维", requiresAuth: true, order: 8 } },
+
+        { path: "admin-users", component: AdminUserManage, meta: { title: "创建管理员", requiresAuth: true, order: 9 } },
       ],
     },
 
-    // 兜底：未知路径回看板
     { path: "/:pathMatch(.*)*", redirect: "/dashboard" },
   ],
 });
@@ -58,21 +65,18 @@ function toastOnce(msg, gap = 1200) {
   ElMessage.warning(msg);
 }
 
-// ✅ 是否需要登录
 function requiresAuth(to) {
   return to.matched.some((r) => r.meta?.requiresAuth);
 }
 
 // ✅ 路由守卫：未登录不能进后台；已登录访问 /login 自动去 /dashboard
 router.beforeEach((to, from, next) => {
-  const token = getToken(); // 统一使用 utils/token.js
+  const token = getToken();
 
-  // 已登录还去登录页 => 送回首页
   if (to.path === "/login" && token) {
     return next("/dashboard");
   }
 
-  // 需要登录但没有 token => 去登录页，并带 redirect
   if (requiresAuth(to) && !token) {
     toastOnce("请先登录");
     return next({ path: "/login", query: { redirect: to.fullPath } });

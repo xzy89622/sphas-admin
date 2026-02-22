@@ -1,428 +1,523 @@
-<!-- src/views/Dashboard.vue -->
 <template>
-  <div>
-    <!-- 统计卡片（可点击跳转） -->
-    <el-row :gutter="20">
-      <el-col :span="6">
-        <el-card class="stat-card" @click="go('/notice')">
-          <div class="card-title">公告总数</div>
-          <div class="card-value">{{ stats.noticeTotal }}</div>
-          <div class="card-hint">点击进入公告管理</div>
-        </el-card>
-      </el-col>
+  <div class="page">
+    <div class="container">
+      <!-- 顶部工具栏 -->
+      <div class="toolbar">
+        <div class="left">
+          <div class="title">数据看板</div>
+          <div class="sub">全站统计 + 用户健康趋势（ECharts）</div>
+        </div>
 
-      <el-col :span="6">
-        <el-card class="stat-card" @click="go('/feedback')">
-          <div class="card-title">反馈总数</div>
-          <div class="card-value">{{ stats.feedbackTotal }}</div>
-          <div class="card-hint">点击进入反馈管理</div>
-        </el-card>
-      </el-col>
+        <div class="right">
+          <el-input v-model="userId" class="uid" clearable>
+            <template #prepend>userId</template>
+          </el-input>
 
-      <el-col :span="6">
-        <el-card class="stat-card" @click="go('/question-bank')">
-          <div class="card-title">题库总数</div>
-          <div class="card-value">{{ stats.questionTotal }}</div>
-          <div class="card-hint">点击进入题库管理</div>
-        </el-card>
-      </el-col>
+          <el-segmented v-model="days" :options="dayOptions" />
 
-      <el-col :span="6">
-        <el-card class="stat-card" @click="go('/bmi-standards')">
-          <div class="card-title">BMI 标准数</div>
-          <div class="card-value">{{ stats.bmiTotal }}</div>
-          <div class="card-hint">点击进入 BMI 标准</div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <!-- 最近数据：公告 + 反馈 -->
-    <el-row :gutter="20" style="margin-top: 20px">
-      <el-col :span="12">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <div>最近公告（最新 5 条）</div>
-              <el-button size="small" @click="loadAll">刷新</el-button>
-            </div>
-          </template>
-
-          <el-table :data="recentNotices" border v-loading="loading" @row-click="go('/notice')">
-            <el-table-column prop="id" label="ID" width="80" />
-            <el-table-column prop="title" label="标题" min-width="220" show-overflow-tooltip />
-            <el-table-column prop="status" label="状态" width="120">
-              <template #default="{ row }">
-                <el-tag v-if="row.status === 1" type="success">已发布</el-tag>
-                <el-tag v-else type="info">已下线</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="createTime" label="时间" width="180" />
-          </el-table>
-
-          <div class="table-hint">提示：点击任意一行可跳转到公告管理</div>
-        </el-card>
-      </el-col>
-
-      <el-col :span="12">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <div>最近反馈（最新 5 条）</div>
-              <el-button size="small" @click="loadAll">刷新</el-button>
-            </div>
-          </template>
-
-          <el-table :data="recentFeedback" border v-loading="loading" @row-click="go('/feedback')">
-            <el-table-column prop="id" label="ID" width="80" />
-            <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
-            <el-table-column prop="status" label="状态" width="120">
-              <template #default="{ row }">
-                <el-tag :type="row.status === 'OPEN' ? 'warning' : 'success'">
-                  {{ row.status === "OPEN" ? "待处理" : "已处理" }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="createTime" label="时间" width="180" />
-          </el-table>
-
-          <div class="table-hint">提示：点击任意一行可跳转到反馈管理</div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <!-- 图表区 -->
-    <el-row :gutter="20" style="margin-top: 20px">
-      <el-col :span="12">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <div>反馈趋势</div>
-              <el-segmented v-model="trendDays" :options="trendOptions" size="small" />
-            </div>
-          </template>
-          <div ref="chartFeedbackTrendRef" class="chart"></div>
-        </el-card>
-      </el-col>
-
-      <el-col :span="12">
-        <el-card>
-          <template #header>题库维度分布</template>
-          <div ref="chartQuestionDimRef" class="chart"></div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <el-row :gutter="20" style="margin-top: 20px">
-      <el-col :span="24">
-        <el-card>
-          <template #header>BMI 等级分布</template>
-          <div ref="chartBmiLevelRef" class="chart chart-wide"></div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <!-- 快捷入口 -->
-    <el-card style="margin-top: 20px">
-      <template #header>快捷入口</template>
-      <div class="quick-actions">
-        <el-button type="primary" @click="go('/notice')">发布公告</el-button>
-        <el-button @click="go('/feedback')">处理反馈</el-button>
-        <el-button @click="go('/question-bank')">维护题库</el-button>
-        <el-button @click="go('/admin-users')">创建管理员</el-button>
+          <el-button type="primary" @click="loadAll">刷新</el-button>
+        </div>
       </div>
-    </el-card>
+
+      <!-- 全站概览 -->
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">全站概览</div>
+          <div class="hint">说明：用于展示系统规模与运行情况（公告/题库/社区/挑战/预警/积分流水）</div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="k">用户数</div>
+            <div class="v">{{ fmt(stats?.userTotal) }}</div>
+            <div class="d">普通用户</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="k">管理员</div>
+            <div class="v">{{ fmt(stats?.adminTotal) }}</div>
+            <div class="d">后台账号</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="k">公告数</div>
+            <div class="v">{{ fmt(stats?.noticeTotal) }}</div>
+            <div class="d">Notice</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="k">健康科普</div>
+            <div class="v">{{ fmt(stats?.articleTotal) }}</div>
+            <div class="d">Health Article</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="k">反馈数</div>
+            <div class="v">{{ fmt(stats?.feedbackTotal) }}</div>
+            <div class="d">Feedback</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="k">题库题目</div>
+            <div class="v">{{ fmt(stats?.questionTotal) }}</div>
+            <div class="d">Question Bank</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="k">挑战数</div>
+            <div class="v">{{ fmt(stats?.challengeTotal) }}</div>
+            <div class="d">Challenge</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="k">社区帖子</div>
+            <div class="v">{{ fmt(stats?.postTotal) }}</div>
+            <div class="d">Social Post</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="k">积分流水</div>
+            <div class="v">{{ fmt(stats?.pointRecordTotal) }}</div>
+            <div class="d">Points Record</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="k">风险预警</div>
+            <div class="v">{{ fmt(stats?.riskAlertTotal) }}</div>
+            <div class="d">Risk Alert</div>
+          </div>
+        </div>
+
+        <div class="chart-grid">
+          <div class="panel">
+            <div class="panel-title">内容总量对比（柱状图）</div>
+            <div ref="chartBar" class="chart h320"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">社区审核状态（环形图）</div>
+            <div ref="chartPie" class="chart h320"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 用户趋势 -->
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">用户健康趋势</div>
+          <div class="hint">按 userId 查看：体重/BMI/步数/睡眠/血压/血糖</div>
+        </div>
+
+        <el-empty v-if="overview && overview.hasData === false" :description="overview.msg || '暂无数据'" />
+
+        <div v-else class="chart-grid">
+          <div class="panel">
+            <div class="panel-title">体重 / BMI</div>
+            <div ref="chartWb" class="chart h280"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">步数 / 睡眠</div>
+            <div ref="chartStepSleep" class="chart h280"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">血压（收缩压/舒张压）</div>
+            <div ref="chartBp" class="chart h280"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">血糖</div>
+            <div ref="chartSugar" class="chart h280"></div>
+          </div>
+        </div>
+
+        <div class="footer-note">
+          <span>更新时间：{{ updatedAt }}</span>
+          <span class="dot">•</span>
+          <span>提示：没有数据时，请先用小程序/用户端录入体质数据</span>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
-import { useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
+import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import * as echarts from "echarts";
+import { ElMessage } from "element-plus";
 
-import { noticeAdminPage } from "../api/notice";
-import { feedbackAdminList } from "../api/feedback";
-import { qbAdminPage } from "../api/questionBank";
-import { bmiAdminPage } from "../api/bmiStandard";
+import {
+  fetchAdminDashboardOverview,
+  fetchAdminDashboardTrend,
+  fetchAdminStatsSummary,
+} from "../api/dashboard";
 
-const router = useRouter();
-const go = (path) => router.push(path);
+const stats = ref(null);
+const overview = ref(null);
+const trend = ref([]);
+const updatedAt = ref("-");
 
-const loading = ref(false);
-
-// ✅ 统计
-const stats = reactive({
-  noticeTotal: 0,
-  feedbackTotal: 0,
-  questionTotal: 0,
-  bmiTotal: 0,
-});
-
-// ✅ 最近数据
-const recentNotices = ref([]);
-const recentFeedback = ref([]);
-const feedbackCache = ref([]);
-
-// ✅ 7/30 天切换
-const trendOptions = [
-  { label: "7 天", value: 7 },
-  { label: "30 天", value: 30 },
+const userId = ref("1");
+const days = ref(30);
+const dayOptions = [
+  { label: "近7天", value: 7 },
+  { label: "近30天", value: 30 },
+  { label: "近90天", value: 90 },
 ];
-const trendDays = ref(7);
 
-// 图表 DOM 引用
-const chartFeedbackTrendRef = ref(null);
-const chartQuestionDimRef = ref(null);
-const chartBmiLevelRef = ref(null);
+const chartBar = ref(null);
+const chartPie = ref(null);
+const chartWb = ref(null);
+const chartStepSleep = ref(null);
+const chartBp = ref(null);
+const chartSugar = ref(null);
 
-// 图表实例
-let chartFeedbackTrend = null;
-let chartQuestionDim = null;
-let chartBmiLevel = null;
+let insBar = null;
+let insPie = null;
+let insWb = null;
+let insStepSleep = null;
+let insBp = null;
+let insSugar = null;
 
-// 兼容后端返回格式：有的接口返回 Page，有的返回 List
-function extractTotalAndList(resp) {
-  if (Array.isArray(resp)) return { total: resp.length, list: resp };
-  const obj = resp?.data && typeof resp.data === "object" ? resp.data : resp;
-  const total = Number(obj?.total ?? obj?.count ?? 0) || 0;
-  const list = obj?.records ?? obj?.list ?? obj?.rows ?? obj?.items ?? [];
-  return { total, list: Array.isArray(list) ? list : [] };
+function fmt(v) {
+  if (v === null || v === undefined || v === "") return "-";
+  return String(v);
 }
 
-// 反馈趋势（按 createTime 统计）
-function calcFeedbackTrend(list, daysCount) {
-  const toYmd = (d) => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  };
-
-  const today = new Date();
-  const days = [];
-  for (let i = daysCount - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    days.push(toYmd(d));
-  }
-
-  const counter = new Map();
-  for (const ymd of days) counter.set(ymd, 0);
-
-  for (const item of list || []) {
-    const ct = item?.createTime;
-    if (!ct) continue;
-    const ymd = String(ct).slice(0, 10);
-    if (counter.has(ymd)) counter.set(ymd, counter.get(ymd) + 1);
-  }
-
-  return {
-    labels: days.map((x) => x.slice(5)), // MM-DD
-    values: days.map((x) => counter.get(x) || 0),
-  };
+// ✅ 压缩时间显示，避免X轴太长
+function shortTime(t) {
+  if (!t) return "";
+  // 例：2026-01-29 10:00 -> 01-29 10:00
+  if (t.length >= 16) return t.slice(5, 16);
+  return t;
 }
 
-function ensureCharts() {
-  if (chartFeedbackTrendRef.value && !chartFeedbackTrend) {
-    chartFeedbackTrend = echarts.init(chartFeedbackTrendRef.value);
-  }
-  if (chartQuestionDimRef.value && !chartQuestionDim) {
-    chartQuestionDim = echarts.init(chartQuestionDimRef.value);
-  }
-  if (chartBmiLevelRef.value && !chartBmiLevel) {
-    chartBmiLevel = echarts.init(chartBmiLevelRef.value);
-  }
+function buildX(list) {
+  return list.map((x) => shortTime(x.time));
 }
 
-function renderFeedbackTrend(labels, values, daysCount) {
-  if (!chartFeedbackTrend) return;
-  chartFeedbackTrend.setOption({
+function buildSeries(list, key) {
+  return list.map((x) => (x[key] === null || x[key] === undefined ? null : x[key]));
+}
+
+function renderStatsCharts() {
+  // 柱状图
+  insBar && insBar.dispose();
+  insBar = echarts.init(chartBar.value);
+
+  const barLabels = ["公告", "科普", "反馈", "题库", "挑战", "帖子"];
+  const barValues = [
+    stats.value?.noticeTotal || 0,
+    stats.value?.articleTotal || 0,
+    stats.value?.feedbackTotal || 0,
+    stats.value?.questionTotal || 0,
+    stats.value?.challengeTotal || 0,
+    stats.value?.postTotal || 0,
+  ];
+
+  insBar.setOption({
     tooltip: { trigger: "axis" },
-    xAxis: { type: "category", data: labels },
-    yAxis: { type: "value", minInterval: 1 },
-    series: [{ name: `反馈数量（${daysCount}天）`, type: "line", smooth: true, data: values }],
-  });
-}
-
-function renderQuestionDim(dims, totals) {
-  if (!chartQuestionDim) return;
-  chartQuestionDim.setOption({
-    tooltip: { trigger: "axis" },
-    xAxis: { type: "category", data: dims },
-    yAxis: { type: "value", minInterval: 1 },
-    series: [{ name: "题目数量", type: "bar", data: totals }],
-  });
-}
-
-function renderBmiLevels(pieData) {
-  if (!chartBmiLevel) return;
-  chartBmiLevel.setOption({
-    tooltip: { trigger: "item" },
-    legend: { top: "5%", left: "center" },
+    grid: { left: 40, right: 18, top: 24, bottom: 35 },
+    xAxis: { type: "category", data: barLabels },
+    yAxis: { type: "value" },
     series: [
       {
-        name: "BMI 等级",
+        type: "bar",
+        data: barValues,
+        label: { show: true, position: "top" },
+      },
+    ],
+  });
+
+  // 环形图（状态）
+  insPie && insPie.dispose();
+  insPie = echarts.init(chartPie.value);
+
+  const ps = stats.value?.postStatus || {};
+  const pieData = [
+    { name: "通过", value: ps.approved || 0 },
+    { name: "待审", value: ps.pending || 0 },
+    { name: "驳回", value: ps.rejected || 0 },
+    { name: "隐藏", value: ps.hidden || 0 },
+  ];
+
+  insPie.setOption({
+    tooltip: { trigger: "item" },
+    legend: { orient: "vertical", right: 10, top: "middle" },
+    series: [
+      {
         type: "pie",
-        radius: ["35%", "70%"],
-        avoidLabelOverlap: true,
-        itemStyle: { borderRadius: 6, borderColor: "#fff", borderWidth: 2 },
-        label: { show: true, formatter: "{b}: {c}" },
+        radius: ["42%", "72%"],
+        center: ["42%", "50%"],
         data: pieData,
+        label: { formatter: "{b}\n{c}" },
       },
     ],
   });
 }
 
-// 题库维度统计（用分页 total）
-async function fetchQuestionDimStats() {
-  const dims = ["SPORT", "DIET", "SLEEP", "STRESS"];
-  const totals = [];
-  for (const dim of dims) {
-    const resp = await qbAdminPage({ pageNum: 1, pageSize: 1, dimension: dim });
-    const data = extractTotalAndList(resp);
-    totals.push(data.total || data.list.length);
-  }
-  return { dims, totals };
+function renderTrendCharts() {
+  const x = buildX(trend.value);
+
+  const common = {
+    tooltip: { trigger: "axis" },
+    grid: { left: 46, right: 18, top: 30, bottom: 52 },
+    xAxis: {
+      type: "category",
+      data: x,
+      axisLabel: { rotate: 30 },
+    },
+    yAxis: { type: "value" },
+  };
+
+  // 体重/BMI
+  insWb && insWb.dispose();
+  insWb = echarts.init(chartWb.value);
+  insWb.setOption({
+    ...common,
+    legend: { data: ["体重", "BMI"] },
+    series: [
+      { name: "体重", type: "line", data: buildSeries(trend.value, "weightKg"), connectNulls: true, smooth: true },
+      { name: "BMI", type: "line", data: buildSeries(trend.value, "bmi"), connectNulls: true, smooth: true },
+    ],
+  });
+
+  // 步数/睡眠
+  insStepSleep && insStepSleep.dispose();
+  insStepSleep = echarts.init(chartStepSleep.value);
+  insStepSleep.setOption({
+    ...common,
+    legend: { data: ["步数", "睡眠"] },
+    series: [
+      { name: "步数", type: "line", data: buildSeries(trend.value, "steps"), connectNulls: true, smooth: true },
+      { name: "睡眠", type: "line", data: buildSeries(trend.value, "sleepHours"), connectNulls: true, smooth: true },
+    ],
+  });
+
+  // 血压
+  insBp && insBp.dispose();
+  insBp = echarts.init(chartBp.value);
+  insBp.setOption({
+    ...common,
+    legend: { data: ["收缩压", "舒张压"] },
+    series: [
+      { name: "收缩压", type: "line", data: buildSeries(trend.value, "systolic"), connectNulls: true, smooth: true },
+      { name: "舒张压", type: "line", data: buildSeries(trend.value, "diastolic"), connectNulls: true, smooth: true },
+    ],
+  });
+
+  // 血糖
+  insSugar && insSugar.dispose();
+  insSugar = echarts.init(chartSugar.value);
+  insSugar.setOption({
+    ...common,
+    legend: { data: ["血糖"] },
+    series: [
+      { name: "血糖", type: "line", data: buildSeries(trend.value, "bloodSugar"), connectNulls: true, smooth: true },
+    ],
+  });
 }
 
-// BMI 等级统计（取 1000 条按 level 聚合）
-async function fetchBmiLevelStats() {
-  const resp = await bmiAdminPage({ pageNum: 1, pageSize: 1000 });
-  const data = extractTotalAndList(resp);
-  const list = data.list || [];
-
-  const map = new Map();
-  for (const item of list) {
-    const level = item?.level || "未分类";
-    map.set(level, (map.get(level) || 0) + 1);
-  }
-  return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
-}
-
-const loadAll = async () => {
-  loading.value = true;
+function onResize() {
   try {
-    // ✅ 公告：拿总数 + 最近 5 条
-    const noticeResp = await noticeAdminPage({ pageNum: 1, pageSize: 5 });
-    const noticeData = extractTotalAndList(noticeResp);
-    stats.noticeTotal = noticeData.total || noticeData.list.length;
-    recentNotices.value = (noticeData.list || []).slice(0, 5);
+    insBar && insBar.resize();
+    insPie && insPie.resize();
+    insWb && insWb.resize();
+    insStepSleep && insStepSleep.resize();
+    insBp && insBp.resize();
+    insSugar && insSugar.resize();
+  } catch (e) {}
+}
 
-    // ✅ 反馈：接口是 list（非分页），用长度当总数
-    const feedbackResp = await feedbackAdminList();
-    const feedbackData = extractTotalAndList(feedbackResp);
-    stats.feedbackTotal = feedbackData.total || feedbackData.list.length;
+async function loadAll() {
+  try {
+    stats.value = await fetchAdminStatsSummary();
 
-    feedbackCache.value = feedbackData.list || [];
-    recentFeedback.value = feedbackCache.value.slice(0, 5);
+    const uid = Number(userId.value);
+    if (!uid) {
+      ElMessage.warning("请输入有效的 userId");
+      return;
+    }
 
-    // ✅ 题库：分页 total
-    const qbResp = await qbAdminPage({ pageNum: 1, pageSize: 1 });
-    const qbData = extractTotalAndList(qbResp);
-    stats.questionTotal = qbData.total || qbData.list.length;
+    overview.value = await fetchAdminDashboardOverview(uid);
+    trend.value = await fetchAdminDashboardTrend(uid, days.value);
 
-    // ✅ BMI：分页 total
-    const bmiResp = await bmiAdminPage({ pageNum: 1, pageSize: 1 });
-    const bmiData = extractTotalAndList(bmiResp);
-    stats.bmiTotal = bmiData.total || bmiData.list.length;
-
-    // ✅ 图表
-    const trend = calcFeedbackTrend(feedbackCache.value, trendDays.value);
-    const dimStats = await fetchQuestionDimStats();
-    const bmiPie = await fetchBmiLevelStats();
+    updatedAt.value = new Date().toLocaleString();
 
     await nextTick();
-    ensureCharts();
+    renderStatsCharts();
 
-    renderFeedbackTrend(trend.labels, trend.values, trendDays.value);
-    renderQuestionDim(dimStats.dims, dimStats.totals);
-    renderBmiLevels(bmiPie);
+    if (!(overview.value && overview.value.hasData === false)) {
+      renderTrendCharts();
+    }
 
-    setTimeout(() => {
-      chartFeedbackTrend?.resize();
-      chartQuestionDim?.resize();
-      chartBmiLevel?.resize();
-    }, 0);
+    window.addEventListener("resize", onResize);
   } catch (e) {
-    ElMessage.error(e?.message || "加载看板失败");
-  } finally {
-    loading.value = false;
+    ElMessage.error("加载失败：请检查后端是否启动、管理员token是否有效");
   }
-};
-
-watch(trendDays, (newVal) => {
-  if (!chartFeedbackTrend) return;
-  const trend = calcFeedbackTrend(feedbackCache.value || [], newVal);
-  renderFeedbackTrend(trend.labels, trend.values, newVal);
-  setTimeout(() => chartFeedbackTrend?.resize(), 0);
-});
-
-function handleResize() {
-  chartFeedbackTrend?.resize();
-  chartQuestionDim?.resize();
-  chartBmiLevel?.resize();
 }
 
-onMounted(() => {
-  loadAll();
-  window.addEventListener("resize", handleResize);
-});
+onMounted(loadAll);
 
 onBeforeUnmount(() => {
-  window.removeEventListener("resize", handleResize);
-  chartFeedbackTrend?.dispose();
-  chartQuestionDim?.dispose();
-  chartBmiLevel?.dispose();
-  chartFeedbackTrend = null;
-  chartQuestionDim = null;
-  chartBmiLevel = null;
+  window.removeEventListener("resize", onResize);
+  insBar && insBar.dispose();
+  insPie && insPie.dispose();
+  insWb && insWb.dispose();
+  insStepSleep && insStepSleep.dispose();
+  insBp && insBp.dispose();
+  insSugar && insSugar.dispose();
 });
 </script>
 
 <style scoped>
-.card-title {
-  font-size: 14px;
+.page {
+  background: #f6f7fb;
+  min-height: 100vh;
+  padding: 14px 0;
+}
+
+/* ✅ 居中容器，解决你截图里“太空”的问题 */
+.container {
+  width: min(1280px, calc(100% - 28px));
+  margin: 0 auto;
+}
+
+/* 顶部工具栏 */
+.toolbar {
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.left .title {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.left .sub {
+  margin-top: 4px;
+  font-size: 12px;
   color: #888;
 }
-.card-value {
-  font-size: 28px;
-  font-weight: bold;
-  margin-top: 10px;
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
-.stat-card {
-  cursor: pointer;
-  user-select: none;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+
+.uid {
+  width: 190px;
 }
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+
+/* 分区 */
+.section {
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
 }
-.card-hint {
-  margin-top: 8px;
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  font-weight: 800;
+}
+
+.hint {
   font-size: 12px;
-  color: #999;
+  color: #888;
 }
+
+/* 概览卡片：更紧凑更统一 */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.stat-card {
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 14px;
+  padding: 12px;
+  height: 92px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.k {
+  font-size: 12px;
+  color: #666;
+}
+
+.v {
+  margin-top: 6px;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.d {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #888;
+}
+
+/* 图表网格：卡片统一样式 */
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.panel {
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.panel-title {
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
 .chart {
   width: 100%;
-  height: 360px;
 }
-.chart-wide {
-  height: 420px;
-}
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.table-hint {
+
+.h320 { height: 320px; }
+.h280 { height: 280px; }
+
+.footer-note {
   margin-top: 10px;
   font-size: 12px;
-  color: #999;
-}
-.quick-actions {
+  color: #888;
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
+}
+
+.dot {
+  opacity: 0.6;
+}
+
+/* 响应式 */
+@media (max-width: 1200px) {
+  .stats-grid { grid-template-columns: repeat(3, 1fr); }
+  .chart-grid { grid-template-columns: 1fr; }
 }
 </style>

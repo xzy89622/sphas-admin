@@ -20,13 +20,7 @@
         active-text-color="#ffffff"
       >
         <template v-for="item in menuItems" :key="item.path">
-          <!-- 折叠时：外层套 tooltip，让用户知道每个图标是啥 -->
-          <el-tooltip
-            v-if="collapsed"
-            effect="dark"
-            :content="item.title"
-            placement="right"
-          >
+          <el-tooltip v-if="collapsed" effect="dark" :content="item.title" placement="right">
             <el-menu-item :index="item.path">
               <el-icon class="menu-icon">
                 <component :is="item.icon" />
@@ -35,7 +29,6 @@
             </el-menu-item>
           </el-tooltip>
 
-          <!-- 展开时：正常显示文字 -->
           <el-menu-item v-else :index="item.path">
             <el-icon class="menu-icon">
               <component :is="item.icon" />
@@ -52,7 +45,6 @@
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-// ✅ 图标
 import {
   DataBoard,
   Bell,
@@ -61,6 +53,8 @@ import {
   Collection,
   User,
   Document,
+  Setting, // ✅ 新增：运维用
+  Tickets, // ✅ 新增：审核用
 } from "@element-plus/icons-vue";
 
 defineProps({
@@ -72,13 +66,9 @@ defineProps({
 
 const route = useRoute();
 const router = useRouter();
-
 const active = computed(() => route.path);
 
-/**
- * ✅ 统一定义：路由 path -> 图标
- * 没匹配到就给默认图标 Document
- */
+// ✅ 路由 path -> 图标
 const iconMap = {
   "/dashboard": DataBoard,
   "/notice": Bell,
@@ -87,6 +77,10 @@ const iconMap = {
   "/bmi-standards": Histogram,
   "/question-bank": Collection,
   "/admin-users": User,
+
+  // ✅ 新增
+  "/social-audit": Tickets,
+  "/ops-backup": Setting,
 };
 
 const menuItems = computed(() => {
