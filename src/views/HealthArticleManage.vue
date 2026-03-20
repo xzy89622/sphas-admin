@@ -1,11 +1,10 @@
 <template>
   <el-card class="page-card">
-    <!-- ✅ Element Plus 标准 header：按钮一定能显示 -->
     <template #header>
       <div class="card-header">
         <div class="title-wrap">
           <div class="title">健康科普</div>
-          <div class="desc">管理健康科普文章：新增/编辑/预览/上下线（富文本）</div>
+          <div class="desc">管理健康科普文章：新增 / 编辑 / 预览 / 上下线（富文本）</div>
         </div>
 
         <div class="actions">
@@ -15,7 +14,6 @@
       </div>
     </template>
 
-    <!-- ✅ 筛选区 -->
     <div class="filter-bar">
       <el-input
         v-model="query.title"
@@ -33,7 +31,6 @@
       <el-button @click="onReset">重置</el-button>
     </div>
 
-    <!-- ✅ 列表 -->
     <el-table :data="list" border v-loading="loading">
       <el-table-column prop="id" label="ID" width="80" />
       <el-table-column prop="title" label="标题" min-width="220" show-overflow-tooltip />
@@ -48,7 +45,6 @@
             :preview-src-list="[row.coverUrl]"
             preview-teleported
           >
-            <!-- ✅ 加载失败时显示占位，不再看到“加载失败” -->
             <template #error>
               <div class="img-fallback">无封面</div>
             </template>
@@ -113,7 +109,6 @@
       />
     </div>
 
-    <!-- ✅ 预览弹窗 -->
     <el-dialog v-model="previewVisible" title="文章预览" width="920px" destroy-on-close>
       <div class="preview-title">{{ previewRow?.title }}</div>
 
@@ -150,7 +145,6 @@
       <div class="preview-content" v-html="previewRow?.content"></div>
     </el-dialog>
 
-    <!-- ✅ 新增/编辑弹窗 -->
     <el-dialog
       v-model="dialogVisible"
       :title="form.id ? '编辑文章' : '新增文章'"
@@ -173,7 +167,10 @@
         </el-form-item>
 
         <el-form-item label="封面图 URL">
-          <el-input v-model="form.coverUrl" placeholder="粘贴图片直链（以 .jpg/.png 结尾最好）" />
+          <el-input
+            v-model="form.coverUrl"
+            placeholder="粘贴图片直链（以 .jpg/.png 结尾最好）"
+          />
           <div v-if="form.coverUrl" style="margin-top: 10px; width: 100%">
             <el-image
               :src="form.coverUrl"
@@ -190,7 +187,10 @@
         </el-form-item>
 
         <el-form-item label="正文" required>
-          <RichEditor v-model="form.content" />
+          <RichEditor
+            :key="`article-${form.id || 'new'}-${dialogVisible}`"
+            v-model="form.content"
+          />
         </el-form-item>
 
         <el-form-item label="状态">
@@ -212,10 +212,14 @@
 <script setup>
 import { reactive, ref, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-
 import RichEditor from "../components/RichEditor.vue";
 import { usePage } from "../hooks/usePage";
-import { articleAdminPage, articleSave, articleOffline, articleOnline } from "../api/healthArticle";
+import {
+  articleAdminPage,
+  articleSave,
+  articleOffline,
+  articleOnline,
+} from "../api/healthArticle";
 
 const { page, resetToFirstPage } = usePage(10);
 
@@ -244,7 +248,17 @@ const form = reactive({
 
 function stripHtml(html) {
   if (!html) return "";
-  return String(html).replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+  return String(html)
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isRichTextEmpty(html) {
+  return !stripHtml(html);
 }
 
 const fetchList = async () => {
@@ -313,15 +327,32 @@ const openPreview = (row) => {
 };
 
 const save = async () => {
-  if (!form.title.trim()) return ElMessage.warning("请输入标题");
-  if (!String(form.content || "").trim()) return ElMessage.warning("请输入正文内容");
+  if (!form.title.trim()) {
+    ElMessage.warning("请输入标题");
+    return;
+  }
+
+  if (isRichTextEmpty(form.content)) {
+    ElMessage.warning("请输入正文内容");
+    return;
+  }
 
   saveLoading.value = true;
   try {
-    await articleSave({ ...form });
-    ElMessage.success("保存成功");
+    await articleSave({
+      id: form.id,
+      title: form.title.trim(),
+      summary: form.summary?.trim() || "",
+      coverUrl: form.coverUrl?.trim() || "",
+      content: form.content,
+      status: form.status,
+    });
+
+    ElMessage.success(form.id ? "修改成功" : "新增成功");
     dialogVisible.value = false;
     fetchList();
+  } catch (e) {
+    console.warn("articleSave failed:", e);
   } finally {
     saveLoading.value = false;
   }
@@ -370,6 +401,7 @@ onMounted(fetchList);
   font-weight: 900;
   color: #0f172a;
 }
+
 .title-wrap .desc {
   margin-top: 4px;
   font-size: 12px;
@@ -446,5 +478,14 @@ onMounted(fetchList);
 
 .preview-content {
   line-height: 1.8;
+}
+
+.preview-content :deep(p) {
+  margin: 0 0 12px;
+}
+
+.preview-content :deep(img) {
+  max-width: 100%;
+  border-radius: 10px;
 }
 </style>

@@ -53,8 +53,9 @@ import {
   Collection,
   User,
   Document,
-  Setting, // ✅ 新增：运维用
-  Tickets, // ✅ 新增：审核用
+  Setting,
+  Tickets,
+  Opportunity,
 } from "@element-plus/icons-vue";
 
 defineProps({
@@ -68,7 +69,7 @@ const route = useRoute();
 const router = useRouter();
 const active = computed(() => route.path);
 
-// ✅ 路由 path -> 图标
+// 路由 path -> 图标
 const iconMap = {
   "/dashboard": DataBoard,
   "/notice": Bell,
@@ -77,10 +78,9 @@ const iconMap = {
   "/bmi-standards": Histogram,
   "/question-bank": Collection,
   "/admin-users": User,
-
-  // ✅ 新增
   "/social-audit": Tickets,
   "/ops-backup": Setting,
+  "/advisor-workbench": Opportunity,
 };
 
 const menuItems = computed(() => {

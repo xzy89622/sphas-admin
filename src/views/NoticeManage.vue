@@ -1,11 +1,19 @@
 <template>
-  <el-card title="公告管理" desc="发布系统公告，支持富文本内容（新增/编辑/预览/下线）">
-    <template #extra>
-      <el-button type="primary" @click="openAdd">新增公告</el-button>
-      <el-button @click="fetchList">刷新</el-button>
+  <el-card class="page-card">
+    <template #header>
+      <div class="card-header">
+        <div class="title-wrap">
+          <div class="title">公告管理</div>
+          <div class="desc">发布系统公告，支持富文本内容（新增 / 编辑 / 预览 / 下线）</div>
+        </div>
+
+        <div class="actions">
+          <el-button type="primary" @click="openAdd">新增公告</el-button>
+          <el-button @click="fetchList">刷新</el-button>
+        </div>
+      </div>
     </template>
 
-    <!-- ✅ 筛选区 -->
     <div class="filter-bar">
       <el-input
         v-model="query.title"
@@ -23,12 +31,10 @@
       <el-button @click="onReset">重置</el-button>
     </div>
 
-    <!-- ✅ 列表 -->
     <el-table :data="filteredList" border v-loading="loading">
       <el-table-column prop="id" label="ID" width="80" />
       <el-table-column prop="title" label="标题" min-width="220" show-overflow-tooltip />
 
-      <!-- 内容列：只显示纯文本摘要 -->
       <el-table-column label="内容摘要" min-width="260" show-overflow-tooltip>
         <template #default="{ row }">
           {{ stripHtml(row.content).slice(0, 80) }}
@@ -50,7 +56,6 @@
         <template #default="{ row }">
           <el-button size="small" @click="openPreview(row)">预览</el-button>
           <el-button size="small" @click="openEdit(row)">编辑</el-button>
-
           <el-button
             size="small"
             type="warning"
@@ -75,7 +80,6 @@
       />
     </div>
 
-    <!-- ✅ 预览弹窗 -->
     <el-dialog v-model="previewVisible" title="公告预览" width="860px" destroy-on-close>
       <div class="preview-title">{{ previewRow?.title }}</div>
       <div class="preview-meta">
@@ -83,15 +87,14 @@
         <el-tag v-if="previewRow?.status === 1" type="success">已发布</el-tag>
         <el-tag v-else type="info">已下线</el-tag>
         <span class="sep">|</span>
-        创建：{{ previewRow?.createTime }}
+        创建：{{ previewRow?.createTime || "-" }}
         <span class="sep">|</span>
-        更新：{{ previewRow?.updateTime }}
+        更新：{{ previewRow?.updateTime || "-" }}
       </div>
       <el-divider />
       <div class="preview-content" v-html="previewRow?.content"></div>
     </el-dialog>
 
-    <!-- ✅ 新增/编辑弹窗 -->
     <el-dialog
       v-model="dialogVisible"
       :title="form.id ? '编辑公告' : '新增公告'"
@@ -105,7 +108,10 @@
         </el-form-item>
 
         <el-form-item label="内容" required>
-          <RichEditor v-model="form.content" />
+          <RichEditor
+            :key="`notice-${form.id || 'new'}-${dialogVisible}`"
+            v-model="form.content"
+          />
         </el-form-item>
 
         <el-form-item label="状态">
@@ -127,10 +133,7 @@
 <script setup>
 import { reactive, ref, computed, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-
-import PageContainer from "../components/PageContainer.vue";
 import RichEditor from "../components/RichEditor.vue";
-
 import { noticeAdminPage, noticeSave, noticeOffline } from "../api/notice";
 import { usePage } from "../hooks/usePage";
 
@@ -145,23 +148,9 @@ const saveLoading = ref(false);
 const previewVisible = ref(false);
 const previewRow = ref(null);
 
-// ✅ 查询条件
 const query = reactive({
   title: "",
-  status: null, // 1/0/null
-});
-
-function stripHtml(html) {
-  if (!html) return "";
-  return String(html).replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
-}
-
-// ✅ 前端 status 过滤（避免后端不支持 status 参数时也能正常筛选）
-const filteredList = computed(() => {
-  if (query.status === null || query.status === undefined || query.status === "") {
-    return list.value;
-  }
-  return list.value.filter((x) => x.status === query.status);
+  status: null,
 });
 
 const form = reactive({
@@ -169,6 +158,28 @@ const form = reactive({
   title: "",
   content: "",
   status: 1,
+});
+
+function stripHtml(html) {
+  if (!html) return "";
+  return String(html)
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isRichTextEmpty(html) {
+  return !stripHtml(html);
+}
+
+const filteredList = computed(() => {
+  if (query.status === null || query.status === undefined || query.status === "") {
+    return list.value;
+  }
+  return list.value.filter((item) => item.status === query.status);
 });
 
 const fetchList = async () => {
@@ -207,14 +218,19 @@ const onSizeChange = () => {
 };
 
 const openAdd = () => {
-  Object.assign(form, { id: null, title: "", content: "", status: 1 });
+  Object.assign(form, {
+    id: null,
+    title: "",
+    content: "",
+    status: 1,
+  });
   dialogVisible.value = true;
 };
 
 const openEdit = (row) => {
   Object.assign(form, {
     id: row.id,
-    title: row.title,
+    title: row.title || "",
     content: row.content || "",
     status: row.status ?? 1,
   });
@@ -231,15 +247,22 @@ const save = async () => {
     ElMessage.warning("请输入标题");
     return;
   }
-  if (!String(form.content || "").trim()) {
+
+  if (isRichTextEmpty(form.content)) {
     ElMessage.warning("请输入内容");
     return;
   }
 
   saveLoading.value = true;
   try {
-    await noticeSave({ ...form });
-    ElMessage.success("保存成功");
+    await noticeSave({
+      id: form.id,
+      title: form.title.trim(),
+      content: form.content,
+      status: form.status,
+    });
+
+    ElMessage.success(form.id ? "修改成功" : "新增成功");
     dialogVisible.value = false;
     fetchList();
   } catch (e) {
@@ -265,11 +288,41 @@ onMounted(fetchList);
 </script>
 
 <style scoped>
+.page-card {
+  border-radius: 16px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.title-wrap .title {
+  font-size: 18px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.title-wrap .desc {
+  margin-top: 4px;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
 .filter-bar {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
 .pager {
@@ -279,22 +332,37 @@ onMounted(fetchList);
 }
 
 .preview-title {
-  font-size: 16px;
-  font-weight: 800;
-  margin-bottom: 6px;
+  font-size: 20px;
+  font-weight: 900;
+  color: #0f172a;
 }
 
 .preview-meta {
-  font-size: 12px;
-  color: #666;
+  margin-top: 8px;
+  color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .sep {
-  margin: 0 8px;
-  color: #bbb;
+  color: rgba(0, 0, 0, 0.28);
 }
 
 .preview-content {
-  line-height: 1.8;
+  line-height: 1.9;
+  color: #1f2937;
+  font-size: 14px;
+  word-break: break-word;
+}
+
+.preview-content :deep(p) {
+  margin: 0 0 12px;
+}
+
+.preview-content :deep(img) {
+  max-width: 100%;
+  border-radius: 10px;
 }
 </style>
